@@ -1,15 +1,9 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-
 export default function LoginPage() {
-    const supabase = createClient()
-    const router = useRouter()
-
     const handleGoogleLogin = async () => {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
