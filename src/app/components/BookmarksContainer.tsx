@@ -22,7 +22,22 @@ export default function BookmarksContainer({ initialBookmarks, userId }: Props) 
     const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks)
     const supabase = createClient()
 
-    // Real-time subscription for updates from OTHER tabs/devices
+    // Poll every 3 seconds to catch cross-tab updates reliably
+    useEffect(() => {
+        const poll = async () => {
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('bookmarks')
+                .select('*')
+                .order('created_at', { ascending: false })
+            if (data) setBookmarks(data as Bookmark[])
+        }
+
+        const interval = setInterval(poll, 3000)
+        return () => clearInterval(interval)
+    }, [])
+
+    // Realtime subscription (works when Supabase Realtime is enabled on the table)
     useEffect(() => {
         const channel = supabase
             .channel('bookmarks-realtime')
@@ -34,7 +49,6 @@ export default function BookmarksContainer({ initialBookmarks, userId }: Props) 
                     table: 'bookmarks',
                 },
                 (payload) => {
-                    // Only add if it belongs to this user (RLS ensures this, but double-check)
                     if ((payload.new as { user_id: string }).user_id !== userId) return
                     setBookmarks((prev) => {
                         if (prev.find((b) => b.id === payload.new.id)) return prev
