@@ -3,18 +3,29 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function AddBookmarkForm() {
+type Bookmark = {
+    id: string
+    url: string
+    title: string
+    created_at: string
+    user_id: string
+}
+
+type Props = {
+    userId: string
+    onAdd: (bookmark: Bookmark) => void
+}
+
+export default function AddBookmarkForm({ userId, onAdd }: Props) {
     const [url, setUrl] = useState('')
     const [title, setTitle] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const supabase = createClient()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
 
-        // Basic URL validation
         try {
             new URL(url)
         } catch {
@@ -28,21 +39,18 @@ export default function AddBookmarkForm() {
         }
 
         setLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
+        const supabase = createClient()
 
-        if (!user) {
-            setError('Not authenticated')
-            setLoading(false)
-            return
-        }
-
-        const { error: insertError } = await supabase
+        const { data, error: insertError } = await supabase
             .from('bookmarks')
-            .insert({ url: url.trim(), title: title.trim(), user_id: user.id })
+            .insert({ url: url.trim(), title: title.trim(), user_id: userId })
+            .select()
+            .single()
 
         if (insertError) {
             setError(insertError.message)
-        } else {
+        } else if (data) {
+            onAdd(data as Bookmark) // instant update — no refresh needed
             setUrl('')
             setTitle('')
         }

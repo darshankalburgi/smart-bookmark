@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import BookmarkList from './components/BookmarkList'
-import AddBookmarkForm from './components/AddBookmarkForm'
+import BookmarksContainer from './components/BookmarksContainer'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -68,20 +67,10 @@ export default async function Home() {
 
       {/* Main content */}
       <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <AddBookmarkForm />
-
-        <div>
-          <h2 className="text-white font-semibold text-lg mb-4">
-            Your Bookmarks
-            <span className="ml-2 text-sm font-normal text-slate-500">
-              ({bookmarks?.length ?? 0})
-            </span>
-          </h2>
-          <BookmarkList
-            initialBookmarks={bookmarks ?? []}
-            userId={user.id}
-          />
-        </div>
+        <BookmarksContainer
+          initialBookmarks={bookmarks ?? []}
+          userId={user.id}
+        />
       </div>
     </main>
   )

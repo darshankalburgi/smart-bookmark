@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type Bookmark = {
@@ -12,57 +12,19 @@ type Bookmark = {
 }
 
 type Props = {
-    initialBookmarks: Bookmark[]
+    bookmarks: Bookmark[]
     userId: string
+    onDelete: (id: string) => void
 }
 
-export default function BookmarkList({ initialBookmarks, userId }: Props) {
-    const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks)
+export default function BookmarkList({ bookmarks, userId, onDelete }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null)
-    const supabase = createClient()
-
-    useEffect(() => {
-        // Subscribe to real-time changes on the bookmarks table for this user
-        const channel = supabase
-            .channel('bookmarks-realtime')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'bookmarks',
-                    filter: `user_id=eq.${userId}`,
-                },
-                (payload) => {
-                    setBookmarks((prev) => {
-                        // Avoid duplicates
-                        if (prev.find((b) => b.id === payload.new.id)) return prev
-                        return [payload.new as Bookmark, ...prev]
-                    })
-                }
-            )
-            .on(
-                'postgres_changes',
-                {
-                    event: 'DELETE',
-                    schema: 'public',
-                    table: 'bookmarks',
-                    filter: `user_id=eq.${userId}`,
-                },
-                (payload) => {
-                    setBookmarks((prev) => prev.filter((b) => b.id !== payload.old.id))
-                }
-            )
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [supabase, userId])
 
     const handleDelete = async (id: string) => {
         setDeletingId(id)
+        const supabase = createClient()
         await supabase.from('bookmarks').delete().eq('id', id).eq('user_id', userId)
+        onDelete(id) // instant removal from list
         setDeletingId(null)
     }
 
