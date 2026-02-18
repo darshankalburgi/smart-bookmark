@@ -32,9 +32,10 @@ export default function BookmarksContainer({ initialBookmarks, userId }: Props) 
                     event: 'INSERT',
                     schema: 'public',
                     table: 'bookmarks',
-                    filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
+                    // Only add if it belongs to this user (RLS ensures this, but double-check)
+                    if ((payload.new as { user_id: string }).user_id !== userId) return
                     setBookmarks((prev) => {
                         if (prev.find((b) => b.id === payload.new.id)) return prev
                         return [payload.new as Bookmark, ...prev]
@@ -47,13 +48,14 @@ export default function BookmarksContainer({ initialBookmarks, userId }: Props) 
                     event: 'DELETE',
                     schema: 'public',
                     table: 'bookmarks',
-                    filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
                     setBookmarks((prev) => prev.filter((b) => b.id !== payload.old.id))
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log('Realtime status:', status)
+            })
 
         return () => {
             supabase.removeChannel(channel)
